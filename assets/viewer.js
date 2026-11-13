@@ -12,7 +12,8 @@ let pageNum = 1;
 let pageRendering = false;
 let pageNumPending = null;
 let scale = 1.0;
-let zoomFactor = 1.0; // user-controlled multiplier on top of the auto-fit scale
+const DEFAULT_ZOOM = 0.69; // 69% of the auto-fit scale; shown in the zoom label
+let zoomFactor = DEFAULT_ZOOM;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3.0;
 const LOW_RES_SCALE = 0.4;
@@ -501,7 +502,7 @@ async function loadPDF(url, btnElement, topicName, spotifyLink, topicIndex, star
     pageNum = Math.max(1, startPage || 1);
     pageRendering = false;
     pageNumPending = null;
-    zoomFactor = 1.0;
+    zoomFactor = DEFAULT_ZOOM;
     updateZoomButtons();
     updateSpotify(spotifyLink);
 
@@ -727,7 +728,7 @@ function setZoom(next) {
 }
 function zoomIn() { setZoom(zoomFactor * 1.2); }
 function zoomOut() { setZoom(zoomFactor / 1.2); }
-function zoomReset() { setZoom(1); }
+function zoomReset() { setZoom(DEFAULT_ZOOM); }
 
 prevBtn.addEventListener('click', onPrevPage);
 nextBtn.addEventListener('click', onNextPage);
