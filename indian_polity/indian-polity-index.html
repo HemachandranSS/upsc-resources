@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Polity - Single Page PDF Viewer</title>
+    <meta name="theme-color" content="#16244a">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="../assets/viewer.css">
+    <script src="../assets/viewer-shell.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="layout">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">📚 Topics</div>
+            <ul class="topic-list" id="topicList"></ul>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle sidebar">☰</button>
+                <div class="title" id="currentTopic">Select a Topic</div>
+                <div class="controls">
+                    <button id="prevBtn" class="nav-btn" disabled>← Previous</button>
+                    <div id="pageInfo" class="page-info">-</div>
+                    <button id="nextBtn" class="nav-btn" disabled>Next →</button>
+                    <div class="zoom-controls">
+                        <button id="zoomOut" class="zoom-btn" aria-label="Zoom out">−</button>
+                        <span id="zoomLevel" class="zoom-level">100%</span>
+                        <button id="zoomIn" class="zoom-btn" aria-label="Zoom in">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="viewer-container" id="viewerContainer" oncontextmenu="return false;">
+                <div class="welcome-message" id="welcomeMessage">📚 Select a topic from the sidebar to start reading!</div>
+                <div class="loading" id="loadingMessage">
+                    <div class="spinner"></div>
+                    <div id="loadingText">Loading PDF...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+                <div class="page-wrapper" id="pageWrapper">
+                    <div class="skeleton-shimmer" id="skeletonShimmer"></div>
+                    <canvas id="pdfCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="audio-section" id="audioSection">
+                <iframe
+                    id="spotifyPlayer"
+                    style="border-radius:12px"
+                    data-src="https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator"
+                    width="100%"
+                    height="152"
+                    frameBorder="0"
+                    allowfullscreen=""
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="./indian-polity-topics.js"></script>
+    <script defer src="../assets/viewer.js"></script>
+</body>
+</html>

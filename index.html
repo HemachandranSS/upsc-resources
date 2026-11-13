@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customized Learning Space</title>
+    <meta name="description" content="Centralized digital repository for UPSC academic resources and interactive modules.">
+    <meta name="theme-color" content="#0f2027">
+    <script src="assets/viewer-shell.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            color-scheme: dark;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(1100px 600px at 0% 0%, rgba(132, 250, 176, 0.12), transparent 60%),
+                radial-gradient(900px 600px at 100% 100%, rgba(143, 211, 244, 0.14), transparent 60%),
+                linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        :focus-visible {
+            outline: 2px solid #8fd3f4;
+            outline-offset: 3px;
+        }
+
+        .header {
+            padding: 2.5rem 4rem 2rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #a0aec0;
+            font-size: 1.1rem;
+        }
+
+        .header p::first-letter {
+            text-transform: uppercase;
+        }
+
+        .search {
+            position: relative;
+            max-width: 520px;
+            margin: 1.5rem auto 0;
+        }
+
+        .search svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        .search input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .search input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .search input:focus {
+            border-color: #8fd3f4;
+            background: rgba(0, 0, 0, 0.28);
+            box-shadow: 0 0 0 4px rgba(143, 211, 244, 0.15);
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #a0aec0;
+            padding: 3rem 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: clamp(1.25rem, 3vw, 4rem);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+            gap: clamp(1rem, 2vw, 1.75rem);
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* No backdrop-filter here: blurring a flat gradient behind 30+ cards is
+           invisible but makes scrolling janky on low-end devices. */
+        .card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 18px;
+            padding: 1.75rem;
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            animation: cardIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+            animation-delay: calc(var(--i, 0) * 25ms);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(400px 160px at 0% 0%, rgba(132, 250, 176, 0.14), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+        }
+
+        a.card:hover,
+        a.card:focus-visible {
+            transform: translateY(-6px);
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.38);
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+            border-color: rgba(143, 211, 244, 0.45);
+        }
+
+        a.card:hover::before,
+        a.card:focus-visible::before {
+            opacity: 1;
+        }
+
+        a.card:active {
+            transform: translateY(-2px);
+        }
+
+        .card[hidden] {
+            display: none;
+        }
+
+        @keyframes cardIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card {
+                animation: none;
+            }
+
+            .card,
+            .card::before {
+                transition: none;
+            }
+        }
+
+        .card-icon {
+            font-size: 2.6rem;
+            line-height: 1;
+            width: 3.6rem;
+            height: 3.6rem;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 0.25rem;
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        a.card:hover .card-icon {
+            transform: scale(1.08) rotate(-4deg);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #8fd3f4;
+        }
+
+        .card-description {
+            color: #cbd5e0;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            color: #a0aec0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            background: rgba(132, 250, 176, 0.2);
+            color: #84fab0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .header {
+                padding: 1.75rem 2rem;
+            }
+
+            .header h1 {
+                font-size: 2.1rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem 1.25rem;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+                line-height: 1.15;
+            }
+
+            .header p {
+                font-size: 0.95rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 1.4rem;
+                border-radius: 14px;
+            }
+
+            .card-icon {
+                font-size: 2.4rem;
+            }
+
+            .card-title {
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            .header {
+                padding: 1rem 1.25rem;
+            }
+
+            .header h1 {
+                font-size: 1.55rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .header p {
+                font-size: 0.85rem;
+            }
+
+            .main-content {
+                padding: 0.85rem 1rem 1rem;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 0.85rem;
+            }
+
+            .card {
+                padding: 1.1rem;
+                gap: 0.75rem;
+            }
+
+            .card-description {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 1.1rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.45rem;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            .main-content {
+                padding: 0.85rem;
+            }
+
+            .card {
+                padding: 1.1rem;
+            }
+
+            .card-footer {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <h1>UPSC Resources</h1>
+        <p>centralized digital repository for academic resources and interactive modules.</p>
+        <div class="search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input type="search" id="moduleSearch" placeholder="Search modules…  (press / to focus)"
+                aria-label="Search modules" autocomplete="off" spellcheck="false">
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="grid">
+            <!-- Indian Polity Module Card -->
+            <a href="indian_polity/indian-polity-index.html" class="card">
+                <div class="card-icon">🏛️</div>
+                <div class="card-title">Indian Polity</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Indian Polity lectures and constitutional topics. Includes an
+                    integrated ambient focus playlist.
+                </div>
+                <div class="card-footer">
+                    <span>117 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- International Relations Module Card -->
+            <a href="international-relations/ir-index.html" class="card">
+                <div class="card-icon">🌍</div>
+                <div class="card-title">International Relations</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for International Relations lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>61 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- 2019 International Relations Current Affairs Card -->
+            <a href="2019-international-relations-current-affairs/2019-international-relations-current-affairs-index.html"
+                class="card">
+                <div class="card-icon">🗺️</div>
+                <div class="card-title">2019 International Relations Current Affairs</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for 2019 International Relations current affairs and topic-based
+                    study material.
+                </div>
+                <div class="card-footer">
+                    <span>261 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- 100 Revision Modules 2026 Card -->
+            <a href="100-revision-modules-2026/100-revision-modules-2026-index.html" class="card">
+                <div class="card-icon">📘</div>
+                <div class="card-title">100 Revision Modules 2026</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for 2026 revision modules, arranged by the requested subject
+                    order.
+                </div>
+                <div class="card-footer">
+                    <span>100 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- 2019 Revision Modules Card -->
+            <a href="2019-revision-modules/2019-revision-modules-index.html" class="card">
+                <div class="card-icon">📗</div>
+                <div class="card-title">2019 Revision Modules</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for 2019 prelims revision modules, arranged by subject.
+                </div>
+                <div class="card-footer">
+                    <span>82 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Indian Economy Part 1 Module Card -->
+            <a href="economy-part-1/indian-economy-part-1-index.html" class="card">
+                <div class="card-icon">💹</div>
+                <div class="card-title">Indian Economy - Part 1</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Indian Economy Part 1 lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>48 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Indian Economy Part 2 Module Card -->
+            <a href="economy-part-2/indian-economy-part-2-index.html" class="card">
+                <div class="card-icon">📈</div>
+                <div class="card-title">Indian Economy - Part 2</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Indian Economy Part 2 lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>72 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Economy and Financial Awareness Module Card -->
+            <a href="economy-and-financial-awareness/economy-and-financial-awareness-index.html" class="card">
+                <div class="card-icon">💹</div>
+                <div class="card-title">Economy and Financial Awareness</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Economy and Financial Awareness lectures and topic-based
+                    study material.
+                </div>
+                <div class="card-footer">
+                    <span>10 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Value Addition Module Card -->
+            <a href="value-addition/index.html" class="card">
+                <div class="card-icon">🧩</div>
+                <div class="card-title">Value Addition</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for UPSC Mains Value Addition module PDFs.
+                </div>
+                <div class="card-footer">
+                    <span>17 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- NCERT Basics Module Card -->
+            <a href="ncert/index.html" class="card">
+                <div class="card-icon">📘</div>
+                <div class="card-title">NCERT Basics</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for NCERT basics across Physics, Chemistry, Biology, Polity, and
+                    Geography.
+                </div>
+                <div class="card-footer">
+                    <span>65 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Vocabulary Comprehension 2017 Module Card -->
+            <a href="vocabulary-comprehension - 2017/index.html" class="card">
+                <div class="card-icon">📖</div>
+                <div class="card-title">Vocabulary Comprehension - 2017</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for the Vocabulary Comprehension - 2017 module.
+                </div>
+                <div class="card-footer">
+                    <span>1 Topic</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- English Made Simple Module Card -->
+            <a href="english-made-simple/" class="card">
+                <div class="card-icon">📝</div>
+                <div class="card-title">English Made Simple</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for English Made Simple modules and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>50 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Terminology Module Card -->
+            <a href="terminology/index.html" class="card">
+                <div class="card-icon">🗣️</div>
+                <div class="card-title">Terminology</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for terminology lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>38 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- NITI Aayog Strategy for New India @75 Module Card -->
+            <a href="niti-ayog-strategy-on-new-india-75/index.html" class="card">
+                <div class="card-icon">🏛️</div>
+                <div class="card-title">NITI Aayog - Strategy for New India @75</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for the NITI Aayog Strategy for New India @75 module set.
+                </div>
+                <div class="card-footer">
+                    <span>22 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Science and Technology Module Card -->
+            <a href="science-and-technology/science-and-technology-index.html" class="card">
+                <div class="card-icon">🧪</div>
+                <div class="card-title">Science and Technology</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Science and Technology lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>45 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Ecology and Environment Module Card -->
+            <a href="ecology-and-environment/ecology-and-environment-index.html" class="card">
+                <div class="card-icon">🌿</div>
+                <div class="card-title">Ecology and Environment</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Ecology and Environment lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>58 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Disaster Management Module Card -->
+            <a href="disaster-management/disaster-management-index.html" class="card">
+                <div class="card-icon">🛡️</div>
+                <div class="card-title">Disaster Management</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Disaster Management lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>11 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Ancient History Module Card -->
+            <a href="ancient-history/ancient-history-index.html" class="card">
+                <div class="card-icon">🏺</div>
+                <div class="card-title">Ancient History</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Ancient History lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>23 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Medieval History Module Card -->
+            <a href="medieval-history/medieval-history-index.html" class="card">
+                <div class="card-icon">🏯</div>
+                <div class="card-title">Medieval History</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Medieval History lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>33 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Modern History Module Card -->
+            <a href="modern-history/modern-history-index.html" class="card">
+                <div class="card-icon">📜</div>
+                <div class="card-title">Modern History</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Modern History lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>44 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Modern India Movements Module Card -->
+            <a href="modern-india-movements/modern-india-movements-index.html" class="card">
+                <div class="card-icon">✊</div>
+                <div class="card-title">Modern India Movements</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Modern India Movements lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>12 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Post Independent Development Module Card -->
+            <a href="post-independent-development/post-independent-development-index.html" class="card">
+                <div class="card-icon">🏗️</div>
+                <div class="card-title">Post Independent Development</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Post Independent Development lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>21 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- India Art and Culture Module Card -->
+            <a href="india-art-and-culture/india-art-and-culture-index.html" class="card">
+                <div class="card-icon">🎨</div>
+                <div class="card-title">India Art and Culture</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for India Art and Culture lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>73 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Indian Society Module Card -->
+            <a href="indian-society/indian-society-index.html" class="card">
+                <div class="card-icon">👥</div>
+                <div class="card-title">Indian Society</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Indian Society lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>15 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+
+            <!-- Geography Physical Geomorphology Module Card -->
+            <a href="geography-physical-geomorphology/geography-physical-geomorphology-index.html" class="card">
+                <div class="card-icon">🌍</div>
+                <div class="card-title">Geography - Physical Geomorphology</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Physical Geography and Geomorphology lectures and topic-based
+                    study material.
+                </div>
+                <div class="card-footer">
+                    <span>39 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Geography Indian Geography Module Card -->
+            <a href="geography-indian-geography/geography-indian-geography-index.html" class="card">
+                <div class="card-icon">🗺️</div>
+                <div class="card-title">Geography - Indian Geography</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Indian Geography lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>41 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Geography Oceanography Module Card -->
+            <a href="geography-oceanography/geography-oceanography-index.html" class="card">
+                <div class="card-icon">🌊</div>
+                <div class="card-title">Geography - Oceanography</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Oceanography lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>8 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Geography Climatology Module Card -->
+            <a href="geography-climatology/geography-climatology-index.html" class="card">
+                <div class="card-icon">☁️</div>
+                <div class="card-title">Geography - Climatology</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Climatology lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>48 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Internal Security Module Card -->
+            <a href="internal-security/internal-security-index.html" class="card">
+                <div class="card-icon">🛡️</div>
+                <div class="card-title">Internal Security</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Internal Security lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>22 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- World History Module Card -->
+            <a href="world-history/world-history-index.html" class="card">
+                <div class="card-icon">🌐</div>
+                <div class="card-title">World History</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for World History lectures and topic-based study material.
+                </div>
+                <div class="card-footer">
+                    <span>47 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- States and UT Module Card -->
+            <a href="states-and-ut/states-and-ut-index.html" class="card">
+                <div class="card-icon">🧭</div>
+                <div class="card-title">States and UT</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for State and Union Territory study material.
+                </div>
+                <div class="card-footer">
+                    <span>33 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Standard GK India and The World Module Card -->
+            <a href="standard-gk-india-the-world/standard-gk-india-the-world-index.html" class="card">
+                <div class="card-icon">🌍</div>
+                <div class="card-title">Standard GK India and The World</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Standard GK India and The World lectures and topic-based
+                    study material.
+                </div>
+                <div class="card-footer">
+                    <span>24 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Ethics Module Card -->
+            <a href="ethics/ethics-index.html" class="card">
+                <div class="card-icon">⚖️</div>
+                <div class="card-title">Ethics</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Ethics, Integrity and Aptitude lectures plus Mains case
+                    studies.
+                </div>
+                <div class="card-footer">
+                    <span>56 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Social Justice and Governance Module Card -->
+            <a href="social-justice -governance/social-justice-governance-index.html" class="card">
+                <div class="card-icon">⚖️</div>
+                <div class="card-title">Social Justice and Governance</div>
+                <div class="card-description">
+                    Interactive Single-Page PDF Viewer for Social Justice and Governance lectures and topic-based study
+                    material.
+                </div>
+                <div class="card-footer">
+                    <span>26 Topics</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- YouTube Playlists Module Card -->
+            <a href="youtube-playlists/index.html" class="card">
+                <div class="card-icon">▶️</div>
+                <div class="card-title">Learning Space - YouTube Playlists</div>
+                <div class="card-description">
+                    Interactive Grid Viewer for 176 curated YouTube lecture series and current affairs playlists.
+                </div>
+                <div class="card-footer">
+                    <span>176 Playlists</span>
+                    <span class="badge">Active</span>
+                </div>
+            </a>
+
+            <!-- Placeholder for future modules -->
+            <div class="card" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="card-icon">📚</div>
+                <div class="card-title">More Modules</div>
+                <div class="card-description">
+                    Additional learning spaces will be populated here as they are developed.
+                </div>
+                <div class="card-footer">
+                    <span>Coming Soon</span>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        (() => {
+            const grid = document.querySelector('.grid');
+            const cards = Array.from(grid.querySelectorAll('a.card'));
+            const input = document.getElementById('moduleSearch');
+            const haystacks = cards.map(c => c.textContent.replace(/\s+/g, ' ').toLowerCase());
+            cards.forEach((c, i) => c.style.setProperty('--i', Math.min(i, 20)));
+
+            const empty = document.createElement('p');
+            empty.className = 'no-results';
+            empty.textContent = 'No modules match your search.';
+            empty.hidden = true;
+            grid.appendChild(empty);
+
+            input.addEventListener('input', () => {
+                const terms = input.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+                let visible = 0;
+                cards.forEach((c, i) => {
+                    const match = terms.every(t => haystacks[i].includes(t));
+                    c.hidden = !match;
+                    if (match) visible++;
+                });
+                empty.hidden = visible !== 0;
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const first = cards.find(c => !c.hidden);
+                    if (first) first.click();
+                } else if (e.key === 'Escape') {
+                    input.value = '';
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === '/' && document.activeElement !== input) {
+                    e.preventDefault();
+                    input.focus();
+                }
+            });
+
+            // Warm the next page's shared assets on hover so module pages open faster
+            let warmed = false;
+            grid.addEventListener('pointerover', (e) => {
+                if (warmed || !e.target.closest('a.card')) return;
+                warmed = true;
+                [
+                    ['preconnect', 'https://cdnjs.cloudflare.com'],
+                    ['prefetch', 'assets/viewer.css'],
+                    ['prefetch', 'assets/viewer.js'],
+                    ['prefetch', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'],
+                ].forEach(([rel, href]) => {
+                    const link = document.createElement('link');
+                    link.rel = rel;
+                    link.href = href;
+                    if (rel === 'preconnect') link.crossOrigin = '';
+                    document.head.appendChild(link);
+                });
+            });
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Learning Space Digital - Playlist Extractor v3</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;margin:30px}
+.card{background:white;padding:25px;border-radius:12px;margin-bottom:20px;box-shadow:0 2px 8px #0001}
+textarea{width:100%;height:650px;font-family:monospace;font-size:13px}
+button{padding:12px 20px;border:0;border-radius:8px;cursor:pointer}
+.note{background:#fff4c2;padding:15px;border-left:5px solid #d4a900}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Learning Space Digital — Playlist Extractor v3</h1>
+
+<p>
+<a href="https://www.youtube.com/@LearningspaceIndia/playlists" target="_blank">
+Open Learning Space Digital Playlists
+</a>
+</p>
+
+<div class="note">
+<b>Fixed:</b> This version will NOT use <code>Loading</code>,
+<code>View full playlist</code>, or <code>View full course</code> as a playlist name.
+It reads the actual YouTube <code>lockupMetadataViewModel.title.content</code>
+together with its matching <code>contentId</code>.
+</div>
+</div>
+
+<div class="card">
+<h2>How to run</h2>
+<ol>
+<li>Open the live YouTube Playlists page.</li>
+<li>Press <b>F12</b> → <b>Console</b>.</li>
+<li>Paste the script below.</li>
+<li>Press <b>Enter</b>.</li>
+<li>Wait while the page scrolls and loads more playlists.</li>
+<li>A CSV named <b>learning-space-digital-playlists.csv</b> will download.</li>
+</ol>
+</div>
+
+<div class="card">
+<h2>Extractor Script</h2>
+<textarea id="script">(async () =&gt; {
+  const sleep = ms =&gt; new Promise(r =&gt; setTimeout(r, ms));
+  const playlists = new Map();
+
+  const BAD = /^(loading|view full playlist|view full course|play all)$/i;
+
+  function cleanTitle(s) {
+    return String(s || &quot;&quot;)
+      .replace(/\s+/g, &quot; &quot;)
+      .trim();
+  }
+
+  function add(id, title) {
+    title = cleanTitle(title);
+    if (!id || !id.startsWith(&quot;PL&quot;)) return;
+    if (!title || BAD.test(title)) return;
+    if (title.length &lt; 2) return;
+    playlists.set(id, title);
+  }
+
+  // IMPORTANT:
+  // In YouTube&#x27;s current HTML, playlist data looks like:
+  //
+  // metadata.lockupMetadataViewModel.title.content
+  // metadata.lockupMetadataViewModel.metadata...
+  // contentId: &quot;PL....&quot;
+  //
+  // So title and contentId must be read from the SAME lockup object.
+  function walk(obj) {
+    if (!obj || typeof obj !== &quot;object&quot;) return;
+
+    if (
+      obj.contentId &amp;&amp;
+      obj.contentType === &quot;LOCKUP_CONTENT_TYPE_PLAYLIST&quot; &amp;&amp;
+      obj.metadata?.lockupMetadataViewModel?.title?.content
+    ) {
+      add(
+        obj.contentId,
+        obj.metadata.lockupMetadataViewModel.title.content
+      );
+    }
+
+    for (const value of Object.values(obj)) {
+      if (value &amp;&amp; typeof value === &quot;object&quot;) walk(value);
+    }
+  }
+
+  // Parse ytInitialData robustly from the actual script element.
+  function parseInitialData() {
+    const scripts = [...document.scripts];
+
+    for (const script of scripts) {
+      const t = script.textContent || &quot;&quot;;
+      const marker = &quot;var ytInitialData =&quot;;
+      const pos = t.indexOf(marker);
+
+      if (pos === -1) continue;
+
+      const start = t.indexOf(&quot;{&quot;, pos);
+      if (start === -1) continue;
+
+      // Find the matching closing brace instead of using a fragile regex.
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+
+      for (let i = start; i &lt; t.length; i++) {
+        const ch = t[i];
+
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (ch === &quot;\\&quot;) {
+            escaped = true;
+          } else if (ch === &#x27;&quot;&#x27;) {
+            inString = false;
+          }
+          continue;
+        }
+
+        if (ch === &#x27;&quot;&#x27;) {
+          inString = true;
+        } else if (ch === &quot;{&quot;) {
+          depth++;
+        } else if (ch === &quot;}&quot;) {
+          depth--;
+
+          if (depth === 0) {
+            try {
+              return JSON.parse(t.slice(start, i + 1));
+            } catch (e) {
+              console.warn(&quot;ytInitialData JSON parse failed&quot;, e);
+              return null;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  const initialData = parseInitialData();
+
+  if (initialData) {
+    walk(initialData);
+    console.log(&quot;Initial JSON playlists:&quot;, playlists.size);
+  }
+
+  // Extract titles from rendered cards only.
+  // Never accept &quot;Loading&quot;, &quot;View full playlist&quot;, etc.
+  function extractRenderedCards() {
+    document.querySelectorAll(&#x27;a[href*=&quot;/playlist?list=&quot;]&#x27;).forEach(a =&gt; {
+      const url = new URL(a.href, location.href);
+      const id = url.searchParams.get(&quot;list&quot;);
+      if (!id || !id.startsWith(&quot;PL&quot;)) return;
+
+      // Walk up a few ancestors and search for actual title elements.
+      let node = a;
+      for (let level = 0; level &lt; 7 &amp;&amp; node; level++, node = node.parentElement) {
+        const candidates = node.querySelectorAll(
+          &#x27;yt-formatted-string, h3, [id=&quot;video-title&quot;], [class*=&quot;title&quot;], [class*=&quot;Title&quot;]&#x27;
+        );
+
+        for (const el of candidates) {
+          const title =
+            el.getAttribute(&quot;title&quot;) ||
+            el.getAttribute(&quot;aria-label&quot;) ||
+            el.textContent;
+
+          const cleaned = cleanTitle(title);
+
+          if (
+            cleaned &amp;&amp;
+            !BAD.test(cleaned) &amp;&amp;
+            !/^(playlist|course)$/i.test(cleaned)
+          ) {
+            add(id, cleaned);
+            return;
+          }
+        }
+      }
+    });
+  }
+
+  // Let the initial page settle.
+  await sleep(2000);
+  extractRenderedCards();
+
+  // Scroll to force YouTube continuation loading.
+  let unchanged = 0;
+  let previousCount = playlists.size;
+
+  for (let i = 0; i &lt; 150 &amp;&amp; unchanged &lt; 8; i++) {
+    extractRenderedCards();
+
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: &quot;instant&quot;
+    });
+
+    await sleep(1800);
+
+    extractRenderedCards();
+
+    if (playlists.size === previousCount) {
+      unchanged++;
+    } else {
+      unchanged = 0;
+      console.log(&quot;Playlists found:&quot;, playlists.size);
+    }
+
+    previousCount = playlists.size;
+  }
+
+  // Final cleanup.
+  for (const [id, title] of playlists) {
+    if (BAD.test(title)) playlists.delete(id);
+  }
+
+  const data = [...playlists.entries()].map(([id, title], i) =&gt; ({
+    no: i + 1,
+    title,
+    url: `https://www.youtube.com/playlist?list=${id}`
+  }));
+
+  console.table(data);
+
+  const csv = [
+    &quot;No,Playlist Name,Playlist URL&quot;,
+    ...data.map(x =&gt;
+      `${x.no},&quot;${x.title.replaceAll(&#x27;&quot;&#x27;,&#x27;&quot;&quot;&#x27;)}&quot;,&quot;${x.url}&quot;`
+    )
+  ].join(&quot;\n&quot;);
+
+  const blob = new Blob([csv], {
+    type: &quot;text/csv;charset=utf-8&quot;
+  });
+
+  const download = document.createElement(&quot;a&quot;);
+  download.href = URL.createObjectURL(blob);
+  download.download = &quot;learning-space-digital-playlists.csv&quot;;
+  document.body.appendChild(download);
+  download.click();
+  download.remove();
+
+  alert(
+    `Completed: ${data.length} playlists found.\n\n` +
+    `The CSV contains Playlist Name + Playlist URL.`
+  );
+})();</textarea>
+<br><br>
+<button onclick="navigator.clipboard.writeText(document.getElementById('script').value);this.textContent='Copied!'">
+Copy Script
+</button>
+</div>
+</body>
+</html>
